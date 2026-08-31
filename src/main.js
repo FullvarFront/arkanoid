@@ -1,35 +1,37 @@
-import { Application, Assets, Sprite } from "pixi.js";
+import { Application, Graphics } from "pixi.js";
 
 (async () => {
-  // Create a new application
   const app = new Application();
 
-  // Initialize the application
-  await app.init({ background: "#1099bb", resizeTo: window });
+  await app.init({ background: "#000000", resizeTo: window });
 
-  // Append the application canvas to the document body
   document.getElementById("pixi-container").appendChild(app.canvas);
+  const paddle = new Graphics().rect(0, 0, 100, 100).fill(0xff0000);
 
-  // Load the bunny texture
-  const texture = await Assets.load("/assets/bunny.png");
+  app.stage.addChild(paddle);
 
-  // Create a bunny Sprite
-  const bunny = new Sprite(texture);
+  paddle.position.set(
+    app.screen.width / 2 - paddle.width / 2,
+    app.screen.height - paddle.height,
+  );
 
-  // Center the sprite's anchor point
-  bunny.anchor.set(0.5);
+  const keys = {};
 
-  // Move the sprite to the center of the screen
-  bunny.position.set(app.screen.width / 2, app.screen.height / 2);
+  window.addEventListener("keydown", (e) => {
+    keys[e.key] = true;
+  }) |
+    window.addEventListener("keyup", (e) => {
+      keys[e.key] = false;
+    });
 
-  // Add the bunny to the stage
-  app.stage.addChild(bunny);
-
-  // Listen for animate update
   app.ticker.add((time) => {
-    // Just for fun, let's rotate mr rabbit a little.
-    // * Delta is 1 if running at 100% performance *
-    // * Creates frame-independent transformation *
-    bunny.rotation += 0.1 * time.deltaTime;
+    if (keys["ArrowLeft"] && paddle.x > 0) {
+      paddle.x = paddle.x - 7;
+    } else if (
+      keys["ArrowRight"] &&
+      paddle.x < app.screen.width - paddle.width
+    ) {
+      paddle.x = paddle.x + 7;
+    }
   });
 })();
