@@ -37,6 +37,7 @@ import { Application, Graphics } from "pixi.js";
 
   const radius = 10;
   const ball = new Graphics().circle(0, 0, radius).fill("white");
+  const balls = [ball];
 
   app.stage.addChild(ball);
 
@@ -102,29 +103,39 @@ import { Application, Graphics } from "pixi.js";
       }
     }
 
+    const speedMultiplier = 1.02;
+    const maxSpeed = 25;
+
+    const currentSpeed = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);
+    if (currentSpeed < maxSpeed) {
+      ball.vx *= speedMultiplier;
+      ball.vy *= speedMultiplier;
+    }
+
     return true;
   }
 
   app.ticker.add((time) => {
     if (launched) {
-      ball.x += ball.vx * time.deltaTime;
-      ball.y += ball.vy * time.deltaTime;
+      for (const b of balls) {
+        b.x += b.vx * time.deltaTime;
+        b.y += b.vy * time.deltaTime;
 
-      if (ball.x - radius < 0 || ball.x + radius > app.screen.width) {
-        ball.vx = -ball.vx;
-      }
+        if (b.x - radius < 0 || b.x + radius > app.screen.width) {
+          b.vx = -b.vx;
+        }
+        if (b.y - radius < 0) {
+          b.vy = -b.vy;
+        }
 
-      if (ball.y - radius < 0) {
-        ball.vy = -ball.vy;
-      }
+        resolveBallCollision(b, radius, paddle, true);
 
-      resolveBallCollision(ball, radius, paddle, true);
-
-      for (let i = 0; i < bricks.length; i++) {
-        if (resolveBallCollision(ball, radius, bricks[i])) {
-          app.stage.removeChild(bricks[i]);
-          bricks.splice(i, 1);
-          break;
+        for (let i = 0; i < bricks.length; i++) {
+          if (resolveBallCollision(b, radius, bricks[i])) {
+            app.stage.removeChild(bricks[i]);
+            bricks.splice(i, 1);
+            break;
+          }
         }
       }
     } else {
