@@ -1,4 +1,4 @@
-import { Application, Graphics } from "pixi.js";
+import { Application, Graphics, Text } from "pixi.js";
 
 (async () => {
   const app = new Application();
@@ -167,6 +167,37 @@ import { Application, Graphics } from "pixi.js";
     }
   }
 
+  let score = 0;
+  let highScore = Number(localStorage.getItem("highScore")) || 0;
+
+  const highScoreLabel = new Text({
+    text: "HIGH SCORE",
+    style: { fontFamily: "'Press Start 2P'", fontSize: 60, fill: 0xff5555 },
+  });
+  highScoreLabel.position.set(hudX, 30);
+  app.stage.addChild(highScoreLabel);
+
+  const highScoreValue = new Text({
+    text: highScore.toString(),
+    style: { fontFamily: "'Press Start 2P'", fontSize: 40, fill: 0xffffff },
+  });
+  highScoreValue.position.set(hudX, 120);
+  app.stage.addChild(highScoreValue);
+
+  const scoreLabel = new Text({
+    text: "SCORE",
+    style: { fontFamily: "'Press Start 2P'", fontSize: 60, fill: 0xff5555 },
+  });
+  scoreLabel.position.set(hudX, 200);
+  app.stage.addChild(scoreLabel);
+
+  const scoreValue = new Text({
+    text: score.toString(),
+    style: { fontFamily: "'Press Start 2P'", fontSize: 40, fill: 0xffffff },
+  });
+  scoreValue.position.set(hudX, 290);
+  app.stage.addChild(scoreValue);
+
   app.ticker.add((time) => {
     if (launched) {
       for (const b of balls) {
@@ -189,7 +220,13 @@ import { Application, Graphics } from "pixi.js";
 
             app.stage.removeChild(bricks[i]);
             bricks.splice(i, 1);
-
+            score = +100;
+            scoreValue.text = score.toString();
+            if (score > highScore) {
+              highScore = score;
+              localStorage.setItem("highScore", highScore.toString());
+              highScoreValue.text = highScore.toString();
+            }
             if (Math.random() < 0.35) {
               const type = Math.random() < 0.5 ? "widen" : "multiball";
               const color = type === "widen" ? "cyan" : "orange";
