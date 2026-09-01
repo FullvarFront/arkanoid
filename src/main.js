@@ -6,13 +6,29 @@ import { Application, Graphics } from "pixi.js";
   await app.init({ background: "#000000", resizeTo: window });
 
   document.getElementById("pixi-container").appendChild(app.canvas);
+
+  const gameWidth = app.screen.width * 0.75;
+  const gameHeight = app.screen.height;
+  const hudX = gameWidth + 30;
+
+  const border = new Graphics()
+    .moveTo(0, gameHeight)
+    .lineTo(0, 0)
+    .lineTo(gameWidth, 0)
+    .lineTo(gameWidth, gameHeight)
+    .stroke({ width: 30, color: 0x888888, alignment: 1 });
+
+  app.stage.addChild(border);
+
+  const margin = 30;
+
   const paddle = new Graphics().rect(0, 0, 200, 20).fill(0xff0000);
 
   app.stage.addChild(paddle);
 
   paddle.position.set(
-    app.screen.width / 2 - paddle.width / 2,
-    app.screen.height - paddle.height,
+    gameWidth / 2 - paddle.width / 2,
+    app.screen.height - paddle.height - margin,
   );
 
   const keys = {};
@@ -59,8 +75,8 @@ import { Application, Graphics } from "pixi.js";
         .fill("yellow");
 
       brick.position.set(
-        col * (widthBrick + gap) + 50,
-        row * (heightBrick + gap),
+        col * (widthBrick + gap) + margin,
+        row * (heightBrick + gap) + margin,
       );
       app.stage.addChild(brick);
       bricks.push(brick);
@@ -103,8 +119,8 @@ import { Application, Graphics } from "pixi.js";
       }
     }
 
-    const speedMultiplier = 1.02;
-    const maxSpeed = 25;
+    const speedMultiplier = 1.015;
+    const maxSpeed = 20;
 
     const currentSpeed = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);
     if (currentSpeed < maxSpeed) {
@@ -115,16 +131,40 @@ import { Application, Graphics } from "pixi.js";
     return true;
   }
 
+  const powerups = [];
+
+  const baseWidth = 200;
+  const widePaddleWidth = 260;
+
+  function applyPowerup(type) {
+    if (type === "widen") {
+      paddle.clear().rect(0, 0, widePaddleWidth, 20).fill(0xff0000);
+    } else if (type === "multiball") {
+      const source = balls[0];
+      const speed = Math.sqrt(source.vx ** 2 + source.vy ** 2);
+
+      for (const angleOffset of [-20, 20]) {
+        const rad = (angleOffset * Math.PI) / 180;
+        const newBall = new Graphics().circle(0, 0, radius).fill("white");
+        newBall.position.set(source.x, source.y);
+        newBall.vx = speed * Math.sin(rad) + source.vx;
+        newBall.vy = source.vy;
+        app.stage.addChild(newBall);
+        balls.push(newBall);
+      }
+    }
+  }
+
   app.ticker.add((time) => {
     if (launched) {
       for (const b of balls) {
         b.x += b.vx * time.deltaTime;
         b.y += b.vy * time.deltaTime;
 
-        if (b.x - radius < 0 || b.x + radius > app.screen.width) {
+        if (b.x - radius < margin || b.x + radius > gameWidth - margin) {
           b.vx = -b.vx;
         }
-        if (b.y - radius < 0) {
+        if (b.y - radius < margin) {
           b.vy = -b.vy;
         }
 
@@ -132,8 +172,25 @@ import { Application, Graphics } from "pixi.js";
 
         for (let i = 0; i < bricks.length; i++) {
           if (resolveBallCollision(b, radius, bricks[i])) {
+            const brickX = bricks[i].x;
+            const brickY = bricks[i].y;
+
             app.stage.removeChild(bricks[i]);
             bricks.splice(i, 1);
+
+            if (Math.random() < 0.35) {
+              const type = Math.random() < 0.5 ? "widen" : "multiball";
+              const color = type === "widen" ? "cyan" : "orange";
+
+              const powerup = new Graphics().rect(0, 0, 30, 15).fill(color);
+              powerup.position.set(brickX + widthBrick / 2 - 15, brickY);
+              powerup.type = type;
+              powerup.vy = 3;
+
+              app.stage.addChild(powerup);
+              powerups.push(powerup);
+            }
+
             break;
           }
         }
@@ -143,13 +200,33 @@ import { Application, Graphics } from "pixi.js";
       ball.y = paddle.y - radius;
     }
 
-    if (keys["ArrowLeft"] && paddle.x > 0) {
-      paddle.x = paddle.x - 7;
-    } else if (
-      keys["ArrowRight"] &&
-      paddle.x < app.screen.width - paddle.width
-    ) {
-      paddle.x = paddle.x + 7;
+    let dx = 0;
+    if (keys["ArrowLeft"]) dx -= 7;
+    if (keys["ArrowRight"]) dx += 7;
+
+    paddle.x = Math.max(
+      margin,
+      Math.min(paddle.x + dx, gameWidth - paddle.width - margin),
+    );
+
+    for (let i = powerups.length - 1; i >= 0; i--) {
+      const p = powerups[i];
+      p.y += p.vy * time.deltaTime;
+
+      const caught =
+        p.x < paddle.x + paddle.width &&
+        p.x + p.width > paddle.x &&
+        p.y < paddle.y + paddle.height &&
+        p.y + p.height > paddle.y;
+
+      if (caught) {
+        applyPowerup(p.type);
+        app.stage.removeChild(p);
+        powerups.splice(i, 1);
+      } else if (p.y > app.screen.height) {
+        app.stage.removeChild(p);
+        powerups.splice(i, 1);
+      }
     }
   });
 })();
