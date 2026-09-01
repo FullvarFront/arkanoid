@@ -5,14 +5,15 @@ import { Application, Graphics, Text } from "pixi.js";
 
   await app.init({ background: "#000000", resizeTo: window });
 
+  await document.fonts.ready;
+
   document.getElementById("pixi-container").appendChild(app.canvas);
 
   // const
   const colRef = 11;
-  const rowRef = 5;
-  const gap = 30;
+  const rowRef = 6;
+  const rowColors = [0xcc3311, 0x2266cc, 0xff9933, 0xff99cc, 0x66cc33];
   const bricks = [];
-  const widthBrick = 100;
   const heightBrick = 50;
   const gameWidth = app.screen.width * 0.75;
   const gameHeight = app.screen.height;
@@ -24,6 +25,7 @@ import { Application, Graphics, Text } from "pixi.js";
   const powerups = [];
   const livesIcons = [];
   const radius = 10;
+  const widthBrick = (gameWidth - margin * 2) / colRef;
 
   // let
 
@@ -40,7 +42,7 @@ import { Application, Graphics, Text } from "pixi.js";
     .lineTo(0, 0)
     .lineTo(gameWidth, 0)
     .lineTo(gameWidth, gameHeight)
-    .stroke({ width: 30, color: 0x888888, alignment: 1 });
+    .stroke({ width: 27, color: 0x888888, alignment: 1 });
 
   app.stage.addChild(border);
 
@@ -113,15 +115,21 @@ import { Application, Graphics, Text } from "pixi.js";
   // Создание сетки кирпичей
 
   for (let row = 0; row < rowRef; row++) {
+    const isSilver = row === 0;
+
     for (let col = 0; col < colRef; col++) {
       const brick = new Graphics()
         .rect(0, 0, widthBrick, heightBrick)
-        .fill("yellow");
+        .fill(isSilver ? 0xc0c0c0 : rowColors[row - 1])
+        .stroke({ width: 3, color: 0x000000 });
+
+      brick.hp = isSilver ? 2 : 1;
 
       brick.position.set(
-        col * (widthBrick + gap) + margin,
-        row * (heightBrick + gap) + margin,
+        col * widthBrick + margin,
+        row * heightBrick + margin + 150,
       );
+
       app.stage.addChild(brick);
       bricks.push(brick);
     }
@@ -286,34 +294,37 @@ import { Application, Graphics, Text } from "pixi.js";
 
         for (let j = 0; j < bricks.length; j++) {
           if (resolveBallCollision(b, radius, bricks[j])) {
-            const brickX = bricks[j].x;
-            const brickY = bricks[j].y;
+            bricks[j].hp -= 1;
 
-            app.stage.removeChild(bricks[j]);
-            bricks.splice(j, 1);
-            score += 100;
-            scoreValue.text = score.toString();
-            if (score > highScore) {
-              highScore = score;
-              localStorage.setItem("highScore", highScore.toString());
-              highScoreValue.text = highScore.toString();
+            if (bricks[j].hp <= 0) {
+              const brickX = bricks[j].x;
+              const brickY = bricks[j].y;
+
+              app.stage.removeChild(bricks[j]);
+              bricks.splice(j, 1);
+              score += 100;
+              scoreValue.text = score.toString();
+              if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("highScore", highScore.toString());
+                highScoreValue.text = highScore.toString();
+              }
+
+              // Выпадение баффов с кирпичей
+
+              if (Math.random() < 0.35) {
+                const type = Math.random() < 0.5 ? "widen" : "multiball";
+                const color = type === "widen" ? "cyan" : "orange";
+
+                const powerup = new Graphics().rect(0, 0, 30, 15).fill(color);
+                powerup.position.set(brickX + widthBrick / 2 - 15, brickY);
+                powerup.type = type;
+                powerup.vy = 3;
+
+                app.stage.addChild(powerup);
+                powerups.push(powerup);
+              }
             }
-
-            // Выпадение баффов с кирпичей
-
-            if (Math.random() < 0.35) {
-              const type = Math.random() < 0.5 ? "widen" : "multiball";
-              const color = type === "widen" ? "cyan" : "orange";
-
-              const powerup = new Graphics().rect(0, 0, 30, 15).fill(color);
-              powerup.position.set(brickX + widthBrick / 2 - 15, brickY);
-              powerup.type = type;
-              powerup.vy = 3;
-
-              app.stage.addChild(powerup);
-              powerups.push(powerup);
-            }
-
             break;
           }
         }
