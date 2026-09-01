@@ -22,7 +22,22 @@ import { Application, Graphics } from "pixi.js";
 
   const margin = 30;
 
-  const paddle = new Graphics().rect(0, 0, 200, 20).fill(0xff0000);
+  const baseWidth = 150;
+  const widePaddleWidth = 210;
+
+  function drawPaddle(g, width) {
+    const capWidth = 20;
+    g.clear()
+      .rect(0, 0, width, 20)
+      .fill(0xcccccc)
+      .rect(0, 0, capWidth, 20)
+      .fill(0xff3300)
+      .rect(width - capWidth, 0, capWidth, 20)
+      .fill(0xff3300);
+  }
+
+  const paddle = new Graphics();
+  drawPaddle(paddle, baseWidth);
 
   app.stage.addChild(paddle);
 
@@ -133,12 +148,9 @@ import { Application, Graphics } from "pixi.js";
 
   const powerups = [];
 
-  const baseWidth = 200;
-  const widePaddleWidth = 260;
-
   function applyPowerup(type) {
     if (type === "widen") {
-      paddle.clear().rect(0, 0, widePaddleWidth, 20).fill(0xff0000);
+      drawPaddle(paddle, widePaddleWidth);
     } else if (type === "multiball") {
       const source = balls[0];
       const speed = Math.sqrt(source.vx ** 2 + source.vy ** 2);
