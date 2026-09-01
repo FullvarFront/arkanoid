@@ -6,7 +6,7 @@ import { Application, Graphics } from "pixi.js";
   await app.init({ background: "#000000", resizeTo: window });
 
   document.getElementById("pixi-container").appendChild(app.canvas);
-  const paddle = new Graphics().rect(0, 0, 100, 100).fill(0xff0000);
+  const paddle = new Graphics().rect(0, 0, 200, 20).fill(0xff0000);
 
   app.stage.addChild(paddle);
 
@@ -31,8 +31,57 @@ import { Application, Graphics } from "pixi.js";
 
   ball.position.set(100, 100);
 
-  let ballVX = 15;
-  let ballVY = 15;
+  ball.vx = 15;
+  ball.vy = 15;
+
+  const colRef = 11;
+  const rowRef = 5;
+  const gap = 30;
+
+  const bricks = [];
+
+  const widthBrick = 100;
+  const heightBrick = 50;
+
+  for (let row = 0; row < rowRef; row++) {
+    for (let col = 0; col < colRef; col++) {
+      const brick = new Graphics()
+        .rect(0, 0, widthBrick, heightBrick)
+        .fill("yellow");
+
+      brick.position.set(
+        col * (widthBrick + gap) + 50,
+        row * (heightBrick + gap),
+      );
+      app.stage.addChild(brick);
+      bricks.push(brick);
+    }
+  }
+
+  function resolveBallCollision(ball, radius, obj) {
+    const isColliding =
+      ball.x - radius < obj.x + obj.width &&
+      ball.x + radius > obj.x &&
+      ball.y - radius < obj.y + obj.height &&
+      ball.y + radius > obj.y;
+
+    if (!isColliding) return false;
+
+    const overlapX =
+      Math.min(ball.x + radius, obj.x + obj.width) -
+      Math.max(ball.x - radius, obj.x);
+    const overlapY =
+      Math.min(ball.y + radius, obj.y + obj.height) -
+      Math.max(ball.y - radius, obj.y);
+
+    if (overlapX < overlapY) {
+      ball.vx = -ball.vx;
+    } else {
+      ball.vy = -ball.vy;
+    }
+
+    return true;
+  }
 
   app.ticker.add((time) => {
     if (keys["ArrowLeft"] && paddle.x > 0) {
@@ -44,15 +93,25 @@ import { Application, Graphics } from "pixi.js";
       paddle.x = paddle.x + 7;
     }
 
-    ball.x += ballVX * time.deltaTime;
-    ball.y += ballVY * time.deltaTime;
+    ball.x += ball.vx * time.deltaTime;
+    ball.y += ball.vy * time.deltaTime;
 
     if (ball.x - radius < 0 || ball.x + radius > app.screen.width) {
-      ballVX = -ballVX;
+      ball.vx = -ball.vx;
     }
 
     if (ball.y - radius < 0) {
-      ballVY = -ballVY;
+      ball.vy = -ball.vy;
+    }
+
+    resolveBallCollision(ball, radius, paddle);
+
+    for (let i = 0; i < bricks.length; i++) {
+      if (resolveBallCollision(ball, radius, bricks[i])) {
+        app.stage.removeChild(bricks[i]);
+        bricks.splice(i, 1);
+        break;
+      }
     }
   });
 })();
