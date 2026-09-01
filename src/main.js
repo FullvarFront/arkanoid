@@ -17,8 +17,19 @@ import { Application, Graphics } from "pixi.js";
 
   const keys = {};
 
+  let launched = false;
+
   window.addEventListener("keydown", (e) => {
     keys[e.key] = true;
+    if (e.key === " " && !launched) {
+      launched = true;
+
+      const launchAngle = (30 * Math.PI) / 180;
+      const speed = 15;
+
+      ball.vx = speed * Math.sin(launchAngle);
+      ball.vy = -speed * Math.cos(launchAngle);
+    }
   });
   window.addEventListener("keyup", (e) => {
     keys[e.key] = false;
@@ -30,9 +41,6 @@ import { Application, Graphics } from "pixi.js";
   app.stage.addChild(ball);
 
   ball.position.set(100, 100);
-
-  ball.vx = 15;
-  ball.vy = 15;
 
   const colRef = 11;
   const rowRef = 5;
@@ -58,7 +66,7 @@ import { Application, Graphics } from "pixi.js";
     }
   }
 
-  function resolveBallCollision(ball, radius, obj) {
+  function resolveBallCollision(ball, radius, obj, isPaddle = false) {
     const isColliding =
       ball.x - radius < obj.x + obj.width &&
       ball.x + radius > obj.x &&
@@ -67,23 +75,63 @@ import { Application, Graphics } from "pixi.js";
 
     if (!isColliding) return false;
 
-    const overlapX =
-      Math.min(ball.x + radius, obj.x + obj.width) -
-      Math.max(ball.x - radius, obj.x);
-    const overlapY =
-      Math.min(ball.y + radius, obj.y + obj.height) -
-      Math.max(ball.y - radius, obj.y);
+    if (isPaddle) {
+      const paddleCenter = obj.x + obj.width / 2;
+      const offset = ball.x - paddleCenter;
+      const normalized = offset / (obj.width / 2);
 
-    if (overlapX < overlapY) {
-      ball.vx = -ball.vx;
+      const maxAngle = (60 * Math.PI) / 180;
+      const angle = normalized * maxAngle;
+
+      const speed = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);
+
+      ball.vx = speed * Math.sin(angle);
+      ball.vy = -speed * Math.cos(angle);
     } else {
-      ball.vy = -ball.vy;
+      const overlapX =
+        Math.min(ball.x + radius, obj.x + obj.width) -
+        Math.max(ball.x - radius, obj.x);
+      const overlapY =
+        Math.min(ball.y + radius, obj.y + obj.height) -
+        Math.max(ball.y - radius, obj.y);
+
+      if (overlapX < overlapY) {
+        ball.vx = -ball.vx;
+      } else {
+        ball.vy = -ball.vy;
+      }
     }
 
     return true;
   }
 
   app.ticker.add((time) => {
+    if (launched) {
+      ball.x += ball.vx * time.deltaTime;
+      ball.y += ball.vy * time.deltaTime;
+
+      if (ball.x - radius < 0 || ball.x + radius > app.screen.width) {
+        ball.vx = -ball.vx;
+      }
+
+      if (ball.y - radius < 0) {
+        ball.vy = -ball.vy;
+      }
+
+      resolveBallCollision(ball, radius, paddle, true);
+
+      for (let i = 0; i < bricks.length; i++) {
+        if (resolveBallCollision(ball, radius, bricks[i])) {
+          app.stage.removeChild(bricks[i]);
+          bricks.splice(i, 1);
+          break;
+        }
+      }
+    } else {
+      ball.x = paddle.x + paddle.width / 2;
+      ball.y = paddle.y - radius;
+    }
+
     if (keys["ArrowLeft"] && paddle.x > 0) {
       paddle.x = paddle.x - 7;
     } else if (
@@ -91,27 +139,6 @@ import { Application, Graphics } from "pixi.js";
       paddle.x < app.screen.width - paddle.width
     ) {
       paddle.x = paddle.x + 7;
-    }
-
-    ball.x += ball.vx * time.deltaTime;
-    ball.y += ball.vy * time.deltaTime;
-
-    if (ball.x - radius < 0 || ball.x + radius > app.screen.width) {
-      ball.vx = -ball.vx;
-    }
-
-    if (ball.y - radius < 0) {
-      ball.vy = -ball.vy;
-    }
-
-    resolveBallCollision(ball, radius, paddle);
-
-    for (let i = 0; i < bricks.length; i++) {
-      if (resolveBallCollision(ball, radius, bricks[i])) {
-        app.stage.removeChild(bricks[i]);
-        bricks.splice(i, 1);
-        break;
-      }
     }
   });
 })();
