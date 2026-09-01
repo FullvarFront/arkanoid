@@ -19,13 +19,13 @@ import { Application, Graphics, Text } from "pixi.js";
   const gameHeight = app.screen.height;
   const hudX = gameWidth + 30;
   const margin = 30;
-  const baseWidth = 150;
-  const widePaddleWidth = 210;
   const keys = {};
   const powerups = [];
   const livesIcons = [];
   const radius = 10;
   const widthBrick = (gameWidth - margin * 2) / colRef;
+  const baseWidth = widthBrick * 2;
+  const widePaddleWidth = widthBrick * 3;
 
   // let
 
@@ -34,8 +34,19 @@ import { Application, Graphics, Text } from "pixi.js";
   let score = 0;
   let highScore = Number(localStorage.getItem("highScore")) || 0;
   let lives = 3;
+  let paddleTargetWidth = baseWidth;
+  let blinkTimer = 0;
+  let started = false;
 
-  // Добавление игровой обёртки
+  // Фон игровой части.
+
+  const gameBackground = new Graphics()
+    .rect(0, 0, gameWidth, gameHeight)
+    .fill(0x050518);
+
+  app.stage.addChild(gameBackground);
+
+  // Добавление игровой границы
 
   const border = new Graphics()
     .moveTo(0, gameHeight)
@@ -52,11 +63,11 @@ import { Application, Graphics, Text } from "pixi.js";
     const capWidth = width * 0.2;
     g.clear()
       .rect(0, 0, width, 20)
-      .fill(0xcccccc)
+      .fill(0x707070)
       .rect(0, 0, capWidth, 20)
-      .fill(0xff3300)
+      .fill(0x8b1a1a)
       .rect(width - capWidth, 0, capWidth, 20)
-      .fill(0xff3300);
+      .fill(0x8b1a1a);
   }
 
   // Функция для создания мини платформы в HUD
@@ -84,10 +95,17 @@ import { Application, Graphics, Text } from "pixi.js";
     app.screen.height - paddle.height - margin,
   );
 
-  // Подпись ивенты
+  // Подпись на ивенты
 
   window.addEventListener("keydown", (e) => {
     keys[e.key] = true;
+
+    if (!started && e.key === " ") {
+      started = true;
+      hideMenu();
+      return;
+    }
+
     if (e.key === " " && !launched) {
       launched = true;
 
@@ -189,11 +207,31 @@ import { Application, Graphics, Text } from "pixi.js";
     return true;
   }
 
+  // Функуция для создание баффоф
+
+  function createPowerup(type, x, y) {
+    const color = type === "widen" ? 0x00cccc : 0xff9900;
+
+    const width = widthBrick * 0.6;
+    const height = heightBrick * 0.4;
+
+    const powerup = new Graphics()
+      .roundRect(0, 0, width, height, height / 2)
+      .fill(color)
+      .stroke({ width: 2, color: 0x000000 });
+
+    powerup.type = type;
+    powerup.vy = 3;
+    powerup.position.set(x, y);
+
+    return powerup;
+  }
+
   // Функция для применения пойманного бафа
 
   function applyPowerup(type) {
     if (type === "widen") {
-      drawPaddle(paddle, widePaddleWidth);
+      paddleTargetWidth = widePaddleWidth;
     } else if (type === "multiball") {
       const source = balls[0];
       const speed = Math.sqrt(source.vx ** 2 + source.vy ** 2);
@@ -272,7 +310,78 @@ import { Application, Graphics, Text } from "pixi.js";
   restartText.visible = false;
   app.stage.addChild(restartText);
 
+  // Меню
+
+  const menuOverlay = new Graphics()
+    .rect(0, 0, app.screen.width, app.screen.height)
+    .fill(0x000000);
+  app.stage.addChild(menuOverlay);
+
+  const menuHighScoreLabel = new Text({
+    text: "HIGH SCORE",
+    style: { fontFamily: "'Press Start 2P'", fontSize: 50, fill: 0xff5555 },
+  });
+  menuHighScoreLabel.anchor.set(0.5);
+  menuHighScoreLabel.position.set(app.screen.width / 2, 60);
+  app.stage.addChild(menuHighScoreLabel);
+
+  const menuHighScoreValue = new Text({
+    text: highScore.toString(),
+    style: { fontFamily: "'Press Start 2P'", fontSize: 40, fill: 0xffffff },
+  });
+  menuHighScoreValue.anchor.set(0.5);
+  menuHighScoreValue.position.set(app.screen.width / 2, 130);
+  app.stage.addChild(menuHighScoreValue);
+
+  const menuTitle = new Text({
+    text: "ARKANOID",
+    style: { fontFamily: "'Press Start 2P'", fontSize: 64, fill: 0xffffff },
+  });
+  menuTitle.anchor.set(0.5);
+  menuTitle.position.set(app.screen.width / 2, app.screen.height / 2);
+  app.stage.addChild(menuTitle);
+
+  const menuStartText = new Text({
+    text: "PRESS SPACE TO START",
+    style: { fontFamily: "'Press Start 2P'", fontSize: 48, fill: 0xaaaaaa },
+  });
+  menuStartText.anchor.set(0.5);
+  menuStartText.position.set(app.screen.width / 2, app.screen.height / 2 + 180);
+  app.stage.addChild(menuStartText);
+
+  // Функция срытия меню
+
+  function hideMenu() {
+    menuOverlay.visible = false;
+    menuHighScoreLabel.visible = false;
+    menuHighScoreValue.visible = false;
+    menuTitle.visible = false;
+    menuStartText.visible = false;
+  }
+
   app.ticker.add((time) => {
+    // Мигание надписи в меню
+
+    if (!started) {
+      blinkTimer += time.deltaTime;
+      if (blinkTimer > 30) {
+        menuStartText.visible = !menuStartText.visible;
+        blinkTimer = 0;
+      }
+      return;
+    }
+
+    // Остановка игровой логики при окончании игры. Мигание надписи
+
+    if (gameOver) {
+      blinkTimer += time.deltaTime;
+      if (blinkTimer > 30) {
+        restartText.visible = !restartText.visible;
+        blinkTimer = 0;
+      }
+      return;
+    }
+
     if (launched) {
       // Обрабатываем каждый мяч: движение, отскоки, столкновения
 
@@ -312,14 +421,14 @@ import { Application, Graphics, Text } from "pixi.js";
 
               // Выпадение баффов с кирпичей
 
-              if (Math.random() < 0.35) {
+              if (Math.random() < 0.25) {
                 const type = Math.random() < 0.5 ? "widen" : "multiball";
-                const color = type === "widen" ? "cyan" : "orange";
 
-                const powerup = new Graphics().rect(0, 0, 30, 15).fill(color);
-                powerup.position.set(brickX + widthBrick / 2 - 15, brickY);
-                powerup.type = type;
-                powerup.vy = 3;
+                const powerup = createPowerup(
+                  type,
+                  brickX + widthBrick / 2 - (widthBrick * 0.6) / 2,
+                  brickY + heightBrick / 2 - (heightBrick * 0.4) / 2,
+                );
 
                 app.stage.addChild(powerup);
                 powerups.push(powerup);
@@ -350,7 +459,8 @@ import { Application, Graphics, Text } from "pixi.js";
             endText.text = "GAME OVER";
             endText.visible = true;
             restartText.visible = true;
-            app.ticker.stop();
+            app.stage.addChild(endText);
+            app.stage.addChild(restartText);
           } else {
             const newBall = new Graphics().circle(0, 0, radius).fill("white");
             app.stage.addChild(newBall);
@@ -367,11 +477,23 @@ import { Application, Graphics, Text } from "pixi.js";
         endText.text = "YOU WIN";
         endText.visible = true;
         restartText.visible = true;
-        app.ticker.stop();
+        app.stage.addChild(endText);
+        app.stage.addChild(restartText);
       }
     } else {
       balls[0].x = paddle.x + paddle.width / 2;
       balls[0].y = paddle.y - radius;
+    }
+
+    // Постепенное увелечение платформы при поднятии бафа
+
+    if (paddle.width !== paddleTargetWidth) {
+      const step = 4;
+      const diff = paddleTargetWidth - paddle.width;
+      const change = Math.sign(diff) * Math.min(Math.abs(diff), step);
+
+      paddle.x -= change / 2;
+      drawPaddle(paddle, paddle.width + change);
     }
 
     // Управлени платформой
