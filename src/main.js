@@ -14,15 +14,17 @@ import { Application, Graphics, Text } from "pixi.js";
   const rowRef = 6;
   const rowColors = [0xcc3311, 0x2266cc, 0xff9933, 0xff99cc, 0x66cc33];
   const bricks = [];
-  const heightBrick = 50;
   const gameWidth = app.screen.width * 0.75;
   const gameHeight = app.screen.height;
+  const REFERENCE_HEIGHT = 1057;
+  const scale = app.screen.height / REFERENCE_HEIGHT;
+  const heightBrick = 50 * scale;
   const hudX = gameWidth + 30;
-  const margin = 30;
+  const margin = 30 * scale;
   const keys = {};
   const powerups = [];
   const livesIcons = [];
-  const radius = 10;
+  const radius = 10 * scale;
   const widthBrick = (gameWidth - margin * 2) / colRef;
   const baseWidth = widthBrick * 2;
   const widePaddleWidth = widthBrick * 3;
@@ -53,7 +55,7 @@ import { Application, Graphics, Text } from "pixi.js";
     .lineTo(0, 0)
     .lineTo(gameWidth, 0)
     .lineTo(gameWidth, gameHeight)
-    .stroke({ width: 27, color: 0x888888, alignment: 1 });
+    .stroke({ width: 27 * scale, color: 0x888888, alignment: 1 });
 
   app.stage.addChild(border);
 
@@ -62,11 +64,11 @@ import { Application, Graphics, Text } from "pixi.js";
   function drawPaddle(g, width) {
     const capWidth = width * 0.2;
     g.clear()
-      .rect(0, 0, width, 20)
+      .rect(0, 0, width, 20 * scale)
       .fill(0x707070)
-      .rect(0, 0, capWidth, 20)
+      .rect(0, 0, capWidth, 20 * scale)
       .fill(0x8b1a1a)
-      .rect(width - capWidth, 0, capWidth, 20)
+      .rect(width - capWidth, 0, capWidth, 20 * scale)
       .fill(0x8b1a1a);
   }
 
@@ -110,7 +112,7 @@ import { Application, Graphics, Text } from "pixi.js";
       launched = true;
 
       const launchAngle = (30 * Math.PI) / 180;
-      const speed = 15;
+      const speed = 15 * scale;
 
       balls[0].vx = speed * Math.sin(launchAngle);
       balls[0].vy = -speed * Math.cos(launchAngle);
@@ -139,13 +141,13 @@ import { Application, Graphics, Text } from "pixi.js";
       const brick = new Graphics()
         .rect(0, 0, widthBrick, heightBrick)
         .fill(isSilver ? 0xc0c0c0 : rowColors[row - 1])
-        .stroke({ width: 3, color: 0x000000 });
+        .stroke({ width: 3 * scale, color: 0x000000 });
 
       brick.hp = isSilver ? 2 : 1;
 
       brick.position.set(
         col * widthBrick + margin,
-        row * heightBrick + margin + 150,
+        row * heightBrick + margin + 150 * scale,
       );
 
       app.stage.addChild(brick);
@@ -196,7 +198,7 @@ import { Application, Graphics, Text } from "pixi.js";
     }
 
     const speedMultiplier = 1.015;
-    const maxSpeed = 20;
+    const maxSpeed = 20 * scale;
 
     const currentSpeed = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);
     if (currentSpeed < maxSpeed) {
@@ -221,7 +223,7 @@ import { Application, Graphics, Text } from "pixi.js";
       .stroke({ width: 2, color: 0x000000 });
 
     powerup.type = type;
-    powerup.vy = 3;
+    powerup.vy = 3 * scale;
     powerup.position.set(x, y);
 
     return powerup;
@@ -254,8 +256,8 @@ import { Application, Graphics, Text } from "pixi.js";
 
   for (let i = 0; i < lives; i++) {
     const icon = new Graphics();
-    drawMiniPaddle(icon, 100, 10);
-    icon.position.set(hudX + i * 150, 600);
+    drawMiniPaddle(icon, 100 * scale, 10 * scale);
+    icon.position.set(hudX + i * 150 * scale, 600 * scale);
     app.stage.addChild(icon);
     livesIcons.push(icon);
   }
@@ -264,49 +266,73 @@ import { Application, Graphics, Text } from "pixi.js";
 
   const highScoreLabel = new Text({
     text: "HIGH SCORE",
-    style: { fontFamily: "'Press Start 2P'", fontSize: 60, fill: 0xff5555 },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 60 * scale,
+      fill: 0xff5555,
+    },
   });
-  highScoreLabel.position.set(hudX, 30);
+  highScoreLabel.position.set(hudX, 30 * scale);
   app.stage.addChild(highScoreLabel);
 
   const highScoreValue = new Text({
     text: highScore.toString(),
-    style: { fontFamily: "'Press Start 2P'", fontSize: 40, fill: 0xffffff },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 40 * scale,
+      fill: 0xffffff,
+    },
   });
-  highScoreValue.position.set(hudX, 120);
+  highScoreValue.position.set(hudX, 120 * scale);
   app.stage.addChild(highScoreValue);
 
   const scoreLabel = new Text({
     text: "SCORE",
-    style: { fontFamily: "'Press Start 2P'", fontSize: 60, fill: 0xff5555 },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 60 * scale,
+      fill: 0xff5555,
+    },
   });
-  scoreLabel.position.set(hudX, 200);
+  scoreLabel.position.set(hudX, 200 * scale);
   app.stage.addChild(scoreLabel);
 
   const scoreValue = new Text({
     text: score.toString(),
-    style: { fontFamily: "'Press Start 2P'", fontSize: 40, fill: 0xffffff },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 40 * scale,
+      fill: 0xffffff,
+    },
   });
-  scoreValue.position.set(hudX, 290);
+  scoreValue.position.set(hudX, 290 * scale);
   app.stage.addChild(scoreValue);
 
   // Текст который выводится при Победе/поражении
 
   const endText = new Text({
     text: "",
-    style: { fontFamily: "'Press Start 2P'", fontSize: 60, fill: 0xffffff },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 60 * scale,
+      fill: 0xffffff,
+    },
   });
   endText.anchor.set(0.5);
-  endText.position.set(gameWidth / 2, gameHeight / 2 - 30);
+  endText.position.set(gameWidth / 2, gameHeight / 2 - 30 * scale);
   endText.visible = false;
   app.stage.addChild(endText);
 
   const restartText = new Text({
     text: "PRESS SPACE TO RESTART",
-    style: { fontFamily: "'Press Start 2P'", fontSize: 40, fill: 0xaaaaaa },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 40 * scale,
+      fill: 0xaaaaaa,
+    },
   });
   restartText.anchor.set(0.5);
-  restartText.position.set(gameWidth / 2, gameHeight / 2 + 50);
+  restartText.position.set(gameWidth / 2, gameHeight / 2 + 50 * scale);
   restartText.visible = false;
   app.stage.addChild(restartText);
 
@@ -319,23 +345,35 @@ import { Application, Graphics, Text } from "pixi.js";
 
   const menuHighScoreLabel = new Text({
     text: "HIGH SCORE",
-    style: { fontFamily: "'Press Start 2P'", fontSize: 50, fill: 0xff5555 },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 50 * scale,
+      fill: 0xff5555,
+    },
   });
   menuHighScoreLabel.anchor.set(0.5);
-  menuHighScoreLabel.position.set(app.screen.width / 2, 60);
+  menuHighScoreLabel.position.set(app.screen.width / 2, 60 * scale);
   app.stage.addChild(menuHighScoreLabel);
 
   const menuHighScoreValue = new Text({
     text: highScore.toString(),
-    style: { fontFamily: "'Press Start 2P'", fontSize: 40, fill: 0xffffff },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 40 * scale,
+      fill: 0xffffff,
+    },
   });
   menuHighScoreValue.anchor.set(0.5);
-  menuHighScoreValue.position.set(app.screen.width / 2, 130);
+  menuHighScoreValue.position.set(app.screen.width / 2, 130 * scale);
   app.stage.addChild(menuHighScoreValue);
 
   const menuTitle = new Text({
     text: "ARKANOID",
-    style: { fontFamily: "'Press Start 2P'", fontSize: 64, fill: 0xffffff },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 64 * scale,
+      fill: 0xffffff,
+    },
   });
   menuTitle.anchor.set(0.5);
   menuTitle.position.set(app.screen.width / 2, app.screen.height / 2);
@@ -343,10 +381,17 @@ import { Application, Graphics, Text } from "pixi.js";
 
   const menuStartText = new Text({
     text: "PRESS SPACE TO START",
-    style: { fontFamily: "'Press Start 2P'", fontSize: 48, fill: 0xaaaaaa },
+    style: {
+      fontFamily: "'Press Start 2P'",
+      fontSize: 48 * scale,
+      fill: 0xaaaaaa,
+    },
   });
   menuStartText.anchor.set(0.5);
-  menuStartText.position.set(app.screen.width / 2, app.screen.height / 2 + 180);
+  menuStartText.position.set(
+    app.screen.width / 2,
+    app.screen.height / 2 + 180 * scale,
+  );
   app.stage.addChild(menuStartText);
 
   // Функция срытия меню
@@ -488,7 +533,7 @@ import { Application, Graphics, Text } from "pixi.js";
     // Постепенное увелечение платформы при поднятии бафа
 
     if (paddle.width !== paddleTargetWidth) {
-      const step = 4;
+      const step = 4 * scale;
       const diff = paddleTargetWidth - paddle.width;
       const change = Math.sign(diff) * Math.min(Math.abs(diff), step);
 
@@ -499,8 +544,8 @@ import { Application, Graphics, Text } from "pixi.js";
     // Управлени платформой
 
     let dx = 0;
-    if (keys["ArrowLeft"]) dx -= 7;
-    if (keys["ArrowRight"]) dx += 7;
+    if (keys["ArrowLeft"]) dx -= 7 * scale;
+    if (keys["ArrowRight"]) dx += 7 * scale;
 
     paddle.x = Math.max(
       margin,
